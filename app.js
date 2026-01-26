@@ -175,7 +175,8 @@ const stopWords = new Set([
     'between', 'into', 'through', 'during', 'before', 'after', 'above', 'below', 'up',
     'down', 'out', 'off', 'over', 'under', 'again', 'further', 'any', 'etc', 'via',
     'ie', 'eg', 'per', 'vs', 'including', 'within', 'without', 'along', 'across',
-    'around', 'among', 'throughout', 'upon', 'toward', 'towards', 'besides', 'beyond'
+    'around', 'among', 'throughout', 'upon', 'toward', 'towards', 'besides', 'beyond', 'required',
+    'respect', 'scale', 'related', 'empower', 'culture', 'growth'
 ]);
 
 /**
