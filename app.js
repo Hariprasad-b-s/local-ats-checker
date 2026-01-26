@@ -176,7 +176,12 @@ const stopWords = new Set([
     'down', 'out', 'off', 'over', 'under', 'again', 'further', 'any', 'etc', 'via',
     'ie', 'eg', 'per', 'vs', 'including', 'within', 'without', 'along', 'across',
     'around', 'among', 'throughout', 'upon', 'toward', 'towards', 'besides', 'beyond', 'required',
-    'respect', 'scale', 'related', 'empower', 'culture', 'growth'
+    'respect', 'related', 'empower', 'culture', 'growth', 'datacenter', 'degree',
+    'equivalent', 'experience', 'field', 'global', 'experience.', 'more', 'more.', 'more,',
+    'mission', 'others', 'planet', 'meet', 'mindset', 'vision', 'visionary', 'visionary.',
+    'weeks', 'week', 'month', 'months', 'year', 'years', 'day', 'days', 'hour', 'hours', 'minute', 'minutes', 'second', 'seconds',
+    'week', 'month', 'year', 'day', 'hour', 'minute', 'second', 'week.', 'month.', 'year.', 'day.', 'hour.', 'minute.', 'second.',
+    'week,', 'month,', 'year,', 'day,', 'hour,', 'minute,', 'second,', 'mindset', 'innovate', 'qualifications', 'resilience', 'standards', 'values'
 ]);
 
 /**
@@ -482,6 +487,247 @@ function handleAnalyze() {
     }, 800);
 }
 
+// Store uploaded file content
+let uploadedResumeContent = '';
+
+/**
+ * Read file content based on file type
+ */
+async function readFileContent(file) {
+    const fileName = file.name.toLowerCase();
+
+    if (fileName.endsWith('.txt')) {
+        return await file.text();
+    } else if (fileName.endsWith('.pdf')) {
+        // For PDF files, we'll use a basic text extraction
+        // Note: Full PDF parsing requires a library like pdf.js
+        return await extractTextFromPDF(file);
+    } else if (fileName.endsWith('.docx')) {
+        // For DOCX files, extract text from the XML
+        return await extractTextFromDOCX(file);
+    }
+
+    throw new Error('Unsupported file format');
+}
+
+/**
+ * Extract text from PDF using PDF.js library
+ */
+async function extractTextFromPDF(file) {
+    try {
+        // Check if PDF.js is loaded
+        if (typeof pdfjsLib === 'undefined') {
+            console.error('PDF.js library not loaded');
+            return `[PDF file: ${file.name}]\n\nNote: PDF parsing library not loaded. Please refresh the page or paste your resume content directly.`;
+        }
+
+        // Set the worker source
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        const arrayBuffer = await file.arrayBuffer();
+
+        // Load the PDF document
+        const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+        const pdf = await loadingTask.promise;
+
+        let fullText = '';
+
+        // Extract text from each page
+        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+            const page = await pdf.getPage(pageNum);
+            const textContent = await page.getTextContent();
+
+            // Extract text items and join them
+            const pageText = textContent.items
+                .map(item => item.str)
+                .join(' ');
+
+            fullText += pageText + '\n\n';
+        }
+
+        // Clean up the text
+        fullText = fullText
+            .replace(/\s+/g, ' ')
+            .replace(/\n\s*\n/g, '\n\n')
+            .trim();
+
+        if (fullText.length < 20) {
+            return `[PDF file: ${file.name}]\n\nNote: This PDF appears to contain mostly images or scanned content. For best results, please copy and paste the text content directly from your resume.`;
+        }
+
+        return fullText;
+
+    } catch (error) {
+        console.error('PDF extraction error:', error);
+        return `[PDF file: ${file.name}]\n\nError: ${error.message}\n\nPlease try copying and pasting the text content directly from your resume.`;
+    }
+}
+
+/**
+ * Extract text from DOCX file
+ */
+async function extractTextFromDOCX(file) {
+    try {
+        const arrayBuffer = await file.arrayBuffer();
+        const uint8Array = new Uint8Array(arrayBuffer);
+
+        // DOCX is a ZIP file, we need to find the document.xml file
+        // Look for the PK signature and try to find document.xml content
+        const decoder = new TextDecoder('utf-8', { fatal: false });
+        const content = decoder.decode(uint8Array);
+
+        // Look for XML text content
+        const textRegex = /<w:t[^>]*>([^<]+)<\/w:t>/g;
+        let text = '';
+        let match;
+
+        while ((match = textRegex.exec(content)) !== null) {
+            text += match[1] + ' ';
+        }
+
+        // Clean up
+        text = text
+            .replace(/&amp;/g, '&')
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&quot;/g, '"')
+            .replace(/&#39;/g, "'")
+            .replace(/\s+/g, ' ')
+            .trim();
+
+        if (text.length < 50) {
+            return `[DOCX content detected - "${file.name}"]\n\nNote: For best results with DOCX files, please copy and paste the text content directly. Basic text extraction found: ${text || 'No extractable text found.'}`;
+        }
+
+        return text;
+    } catch (error) {
+        console.error('DOCX extraction error:', error);
+        return `[DOCX file: ${file.name}]\n\nNote: Could not extract text from this file. Please copy and paste the text content directly for best results.`;
+    }
+}
+
+/**
+ * Handle file selection
+ */
+async function handleFileSelect(file) {
+    if (!file) return;
+
+    const validExtensions = ['.txt', '.pdf', '.docx'];
+    const fileName = file.name.toLowerCase();
+    const isValid = validExtensions.some(ext => fileName.endsWith(ext));
+
+    if (!isValid) {
+        alert('Please upload a TXT, PDF, or DOCX file.');
+        return;
+    }
+
+    const uploadZone = document.getElementById('uploadZone');
+    const uploadContent = uploadZone.querySelector('.upload-content');
+    const uploadedFile = document.getElementById('uploadedFile');
+    const fileNameSpan = document.getElementById('fileName');
+    const resumeTextarea = document.getElementById('resume');
+
+    try {
+        // Show loading state
+        uploadContent.innerHTML = '<p class="upload-text">Reading file...</p>';
+
+        // Read file content
+        uploadedResumeContent = await readFileContent(file);
+
+        // Update UI to show uploaded file
+        uploadContent.style.display = 'none';
+        uploadedFile.classList.remove('hidden');
+        fileNameSpan.textContent = file.name;
+        uploadZone.classList.add('has-file');
+
+        // Also populate the textarea with extracted content
+        resumeTextarea.value = uploadedResumeContent;
+
+    } catch (error) {
+        console.error('Error reading file:', error);
+        alert('Error reading file. Please try again or paste your resume manually.');
+        resetUploadZone();
+    }
+}
+
+/**
+ * Reset upload zone to initial state
+ */
+function resetUploadZone() {
+    const uploadZone = document.getElementById('uploadZone');
+    const uploadContent = uploadZone.querySelector('.upload-content');
+    const uploadedFile = document.getElementById('uploadedFile');
+    const resumeFileInput = document.getElementById('resumeFile');
+
+    if (uploadContent) {
+        uploadContent.style.display = 'flex';
+        uploadContent.innerHTML = `
+            <div class="upload-icon">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M21 15V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    <path d="M12 3V15M12 3L7 8M12 3L17 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+            <p class="upload-text">Drag & drop your resume or <span class="upload-link">browse files</span></p>
+            <p class="upload-formats">Supports: TXT, PDF, DOCX</p>
+        `;
+    }
+
+    uploadedFile.classList.add('hidden');
+    uploadZone.classList.remove('has-file');
+    resumeFileInput.value = '';
+    uploadedResumeContent = '';
+}
+
+/**
+ * Setup file upload handlers
+ */
+function setupFileUpload() {
+    const uploadZone = document.getElementById('uploadZone');
+    const resumeFileInput = document.getElementById('resumeFile');
+    const removeFileBtn = document.getElementById('removeFile');
+
+    // Click to browse
+    uploadZone.addEventListener('click', (e) => {
+        if (e.target.closest('.remove-file')) return;
+        resumeFileInput.click();
+    });
+
+    // File input change
+    resumeFileInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+            handleFileSelect(e.target.files[0]);
+        }
+    });
+
+    // Drag and drop
+    uploadZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadZone.classList.add('drag-over');
+    });
+
+    uploadZone.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        uploadZone.classList.remove('drag-over');
+    });
+
+    uploadZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadZone.classList.remove('drag-over');
+
+        if (e.dataTransfer.files.length > 0) {
+            handleFileSelect(e.dataTransfer.files[0]);
+        }
+    });
+
+    // Remove file button
+    removeFileBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        resetUploadZone();
+        document.getElementById('resume').value = '';
+    });
+}
+
 // Event Listeners
 document.addEventListener('DOMContentLoaded', () => {
     const analyzeBtn = document.getElementById('analyzeBtn');
@@ -490,6 +736,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Copy missing keywords button
     const copyMissingBtn = document.getElementById('copyMissingBtn');
     copyMissingBtn.addEventListener('click', copyMissingKeywords);
+
+    // Setup file upload
+    setupFileUpload();
 
     // Allow Ctrl+Enter to analyze
     document.addEventListener('keydown', (e) => {
