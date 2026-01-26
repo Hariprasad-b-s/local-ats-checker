@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="ATS Resume Matcher - Compare your resume with job descriptions and optimize for better ATS scores">
+    <title>ATS Resume Matcher | Optimize Your Resume</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div class="background-effects">
+        <div class="gradient-orb orb-1"></div>
+        <div class="gradient-orb orb-2"></div>
+        <div class="gradient-orb orb-3"></div>
+    </div>
+
+    <div class="container">
+        <header class="header">
+            <div class="logo">
+                <div class="logo-icon">
+                    <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M16 2L28 8V24L16 30L4 24V8L16 2Z" stroke="url(#gradient1)" stroke-width="2"
+                            fill="none" />
+                        <path d="M16 10L22 13V19L16 22L10 19V13L16 10Z" fill="url(#gradient1)" />
+                        <defs>
+                            <linearGradient id="gradient1" x1="4" y1="2" x2="28" y2="30">
+                                <stop offset="0%" stop-color="#6366f1" />
+                                <stop offset="100%" stop-color="#a855f7" />
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </div>
+                <span class="logo-text">ATS Matcher</span>
+            </div>
+            <p class="tagline">Optimize your resume for Applicant Tracking Systems</p>
+        </header>
+
+        <main class="main-content">
+            <div class="input-section">
+                <div class="input-card job-description-card">
+                    <div class="card-header">
+                        <div class="card-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
+                                xmlns="http://www.w3.org/2000/svg">
+                                <rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor"
+                                    stroke-width="2" />
+                                <path d="M7 8H17M7 12H17M7 16H13" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" />
+                            </svg>
+                        </div>
+                        <h2>Job Description</h2>
+                    </div>
+                    <textarea id="jobDescription"
+                        placeholder="Paste the job description here...&#10;&#10;Include the full job posting with requirements, responsibilities, and qualifications for the best analysis."></textarea>
+                </div>
+
+                <div class="input-card resume-card">
+                    <div class="card-header">
+                        <div class="card-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
+                                xmlns="http://www.w3.org/2000/svg">
+                                <path
+                                    d="M14 2H6C4.89543 2 4 2.89543 4 4V20C4 21.1046 4.89543 22 6 22H18C19.1046 22 20 21.1046 20 20V8L14 2Z"
+                                    stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                                <path d="M14 2V8H20M8 13H16M8 17H16M8 9H10" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" />
+                            </svg>
+                        </div>
+                        <h2>Your Resume</h2>
+                    </div>
+                    <textarea id="resume"
+                        placeholder="Paste your resume content here...&#10;&#10;Include your skills, experience, education, and any other relevant information from your resume."></textarea>
+                </div>
+            </div>
+
+            <button id="analyzeBtn" class="analyze-btn">
+                <span class="btn-text">Analyze Match</span>
+                <span class="btn-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                </span>
+                <div class="btn-loader"></div>
+            </button>
+
+            <div id="results" class="results-section hidden">
+                <div class="score-card">
+                    <div class="score-header">
+                        <h3>ATS Match Score</h3>
+                        <p class="score-subtitle">How well your resume matches the job</p>
+                    </div>
+                    <div class="score-display">
+                        <div class="score-ring">
+                            <svg viewBox="0 0 100 100">
+                                <circle class="score-ring-bg" cx="50" cy="50" r="45" />
+                                <circle id="scoreCircle" class="score-ring-progress" cx="50" cy="50" r="45" />
+                            </svg>
+                            <div class="score-value">
+                                <span id="scoreValue">0</span>
+                                <span class="score-percent">%</span>
+                            </div>
+                        </div>
+                        <div id="scoreMessage" class="score-message"></div>
+                    </div>
+                </div>
+
+                <div class="keywords-section">
+                    <div class="keywords-card missing-keywords">
+                        <div class="keywords-header">
+                            <div class="keywords-icon missing">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
+                                    xmlns="http://www.w3.org/2000/svg">
+                                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" />
+                                    <path d="M15 9L9 15M9 9L15 15" stroke="currentColor" stroke-width="2"
+                                        stroke-linecap="round" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h4>Missing Keywords</h4>
+                                <p>Add these to improve your score</p>
+                            </div>
+                            <button id="copyMissingBtn" class="copy-btn" title="Copy all missing keywords">
+                                <svg class="copy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                                    xmlns="http://www.w3.org/2000/svg">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor"
+                                        stroke-width="2" />
+                                    <path
+                                        d="M5 15H4C2.89543 15 2 14.1046 2 13V4C2 2.89543 2.89543 2 4 2H13C14.1046 2 15 2.89543 15 4V5"
+                                        stroke="currentColor" stroke-width="2" />
+                                </svg>
+                                <svg class="check-icon hidden" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                                    xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M5 12L10 17L19 6" stroke="currentColor" stroke-width="2"
+                                        stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                                <span class="copy-text">Copy All</span>
+                            </button>
+                        </div>
+                        <div id="missingKeywords" class="keywords-list"></div>
+                    </div>
+
+                    <div class="keywords-card matched-keywords">
+                        <div class="keywords-header">
+                            <div class="keywords-icon matched">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
+                                    xmlns="http://www.w3.org/2000/svg">
+                                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" />
+                                    <path d="M8 12L11 15L16 9" stroke="currentColor" stroke-width="2"
+                                        stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h4>Matched Keywords</h4>
+                                <p>Already in your resume</p>
+                            </div>
+                        </div>
+                        <div id="matchedKeywords" class="keywords-list"></div>
+                    </div>
+                </div>
+
+                <div class="tips-card">
+                    <div class="tips-header">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path
+                                d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"
+                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                        <h4>Pro Tips</h4>
+                    </div>
+                    <ul id="tipsList" class="tips-list"></ul>
+                </div>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <p>Built with ❤️ for job seekers everywhere</p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
