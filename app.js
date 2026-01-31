@@ -5,9 +5,114 @@
 
 // Store missing keywords globally for copy functionality
 let currentMissingKeywords = [];
+// Store selected keywords
+let selectedKeywords = new Set();
 
 /**
- * Copy missing keywords to clipboard
+ * Update the selected count and button visibility
+ */
+function updateSelectionUI() {
+    const selectedCount = document.getElementById('selectedCount');
+    const copySelectedBtn = document.getElementById('copySelectedBtn');
+    const selectionActions = document.getElementById('selectionActions');
+
+    const count = selectedKeywords.size;
+    selectedCount.textContent = count;
+
+    if (count > 0) {
+        copySelectedBtn.classList.remove('hidden');
+        selectionActions.classList.remove('hidden');
+    } else {
+        copySelectedBtn.classList.add('hidden');
+        selectionActions.classList.add('hidden');
+    }
+}
+
+/**
+ * Toggle keyword selection
+ */
+function toggleKeywordSelection(keyword, element) {
+    if (selectedKeywords.has(keyword)) {
+        selectedKeywords.delete(keyword);
+        element.classList.remove('selected');
+    } else {
+        selectedKeywords.add(keyword);
+        element.classList.add('selected');
+    }
+    updateSelectionUI();
+}
+
+/**
+ * Select all missing keywords
+ */
+function selectAllKeywords() {
+    const keywordTags = document.querySelectorAll('#missingKeywords .keyword-tag.missing');
+    keywordTags.forEach(tag => {
+        const keyword = tag.textContent;
+        selectedKeywords.add(keyword);
+        tag.classList.add('selected');
+    });
+    updateSelectionUI();
+}
+
+/**
+ * Clear all selections
+ */
+function clearAllSelections() {
+    const keywordTags = document.querySelectorAll('#missingKeywords .keyword-tag.missing');
+    keywordTags.forEach(tag => {
+        tag.classList.remove('selected');
+    });
+    selectedKeywords.clear();
+    updateSelectionUI();
+}
+
+/**
+ * Copy selected keywords to clipboard
+ */
+async function copySelectedKeywords() {
+    const copyBtn = document.getElementById('copySelectedBtn');
+    const copyText = copyBtn.querySelector('.copy-text');
+
+    if (selectedKeywords.size === 0) {
+        return;
+    }
+
+    const keywordsArray = Array.from(selectedKeywords);
+
+    try {
+        const keywordsText = keywordsArray.join(', ');
+        await navigator.clipboard.writeText(keywordsText);
+
+        copyBtn.classList.add('copied');
+        const originalText = copyText.innerHTML;
+        copyText.innerHTML = 'Copied!';
+
+        setTimeout(() => {
+            copyBtn.classList.remove('copied');
+            copyText.innerHTML = `Copy Selected (<span id="selectedCount">${selectedKeywords.size}</span>)`;
+        }, 2000);
+    } catch (err) {
+        console.error('Failed to copy:', err);
+        const textArea = document.createElement('textarea');
+        textArea.value = keywordsArray.join(', ');
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+
+        copyBtn.classList.add('copied');
+        copyText.innerHTML = 'Copied!';
+
+        setTimeout(() => {
+            copyBtn.classList.remove('copied');
+            copyText.innerHTML = `Copy Selected (<span id="selectedCount">${selectedKeywords.size}</span>)`;
+        }, 2000);
+    }
+}
+
+/**
+ * Copy all missing keywords to clipboard
  */
 async function copyMissingKeywords() {
     const copyBtn = document.getElementById('copyMissingBtn');
@@ -50,6 +155,7 @@ async function copyMissingKeywords() {
         }, 2000);
     }
 }
+
 
 // Common keywords and skills organized by category
 const keywordCategories = {
@@ -412,13 +518,18 @@ function displayResults(results) {
     // Store missing keywords globally for copy functionality
     currentMissingKeywords = results.missingKeywords;
 
-    // Display missing keywords
+    // Clear previous selections
+    selectedKeywords.clear();
+    updateSelectionUI();
+
+    // Display missing keywords (selectable)
     missingKeywordsContainer.innerHTML = '';
     results.missingKeywords.forEach((keyword, index) => {
         const tag = document.createElement('span');
-        tag.className = 'keyword-tag missing';
+        tag.className = 'keyword-tag missing selectable';
         tag.textContent = keyword;
         tag.style.animationDelay = `${index * 30}ms`;
+        tag.addEventListener('click', () => toggleKeywordSelection(keyword, tag));
         missingKeywordsContainer.appendChild(tag);
     });
 
@@ -736,6 +847,18 @@ document.addEventListener('DOMContentLoaded', () => {
     // Copy missing keywords button
     const copyMissingBtn = document.getElementById('copyMissingBtn');
     copyMissingBtn.addEventListener('click', copyMissingKeywords);
+
+    // Copy selected keywords button
+    const copySelectedBtn = document.getElementById('copySelectedBtn');
+    copySelectedBtn.addEventListener('click', copySelectedKeywords);
+
+    // Select all button
+    const selectAllBtn = document.getElementById('selectAllBtn');
+    selectAllBtn.addEventListener('click', selectAllKeywords);
+
+    // Clear selection button
+    const clearSelectionBtn = document.getElementById('clearSelectionBtn');
+    clearSelectionBtn.addEventListener('click', clearAllSelections);
 
     // Setup file upload
     setupFileUpload();

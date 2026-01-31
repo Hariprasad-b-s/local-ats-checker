@@ -168,24 +168,47 @@
                             </div>
                             <div>
                                 <h4>Missing Keywords</h4>
-                                <p>Add these to improve your score</p>
+                                <p>Click to select, then copy</p>
                             </div>
-                            <button id="copyMissingBtn" class="copy-btn" title="Copy all missing keywords">
-                                <svg class="copy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"
-                                    xmlns="http://www.w3.org/2000/svg">
-                                    <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor"
-                                        stroke-width="2" />
-                                    <path
-                                        d="M5 15H4C2.89543 15 2 14.1046 2 13V4C2 2.89543 2.89543 2 4 2H13C14.1046 2 15 2.89543 15 4V5"
-                                        stroke="currentColor" stroke-width="2" />
-                                </svg>
-                                <svg class="check-icon hidden" width="18" height="18" viewBox="0 0 24 24" fill="none"
-                                    xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M5 12L10 17L19 6" stroke="currentColor" stroke-width="2"
-                                        stroke-linecap="round" stroke-linejoin="round" />
-                                </svg>
-                                <span class="copy-text">Copy All</span>
-                            </button>
+                            <div class="copy-buttons">
+                                <button id="copySelectedBtn" class="copy-btn copy-selected-btn hidden"
+                                    title="Copy selected keywords">
+                                    <svg class="copy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                                        xmlns="http://www.w3.org/2000/svg">
+                                        <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor"
+                                            stroke-width="2" />
+                                        <path
+                                            d="M5 15H4C2.89543 15 2 14.1046 2 13V4C2 2.89543 2.89543 2 4 2H13C14.1046 2 15 2.89543 15 4V5"
+                                            stroke="currentColor" stroke-width="2" />
+                                    </svg>
+                                    <svg class="check-icon hidden" width="18" height="18" viewBox="0 0 24 24"
+                                        fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M5 12L10 17L19 6" stroke="currentColor" stroke-width="2"
+                                            stroke-linecap="round" stroke-linejoin="round" />
+                                    </svg>
+                                    <span class="copy-text">Copy Selected (<span id="selectedCount">0</span>)</span>
+                                </button>
+                                <button id="copyMissingBtn" class="copy-btn" title="Copy all missing keywords">
+                                    <svg class="copy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                                        xmlns="http://www.w3.org/2000/svg">
+                                        <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor"
+                                            stroke-width="2" />
+                                        <path
+                                            d="M5 15H4C2.89543 15 2 14.1046 2 13V4C2 2.89543 2.89543 2 4 2H13C14.1046 2 15 2.89543 15 4V5"
+                                            stroke="currentColor" stroke-width="2" />
+                                    </svg>
+                                    <svg class="check-icon hidden" width="18" height="18" viewBox="0 0 24 24"
+                                        fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M5 12L10 17L19 6" stroke="currentColor" stroke-width="2"
+                                            stroke-linecap="round" stroke-linejoin="round" />
+                                    </svg>
+                                    <span class="copy-text">Copy All</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="selection-actions hidden" id="selectionActions">
+                            <button id="selectAllBtn" class="selection-btn">Select All</button>
+                            <button id="clearSelectionBtn" class="selection-btn">Clear Selection</button>
                         </div>
                         <div id="missingKeywords" class="keywords-list"></div>
                     </div>
