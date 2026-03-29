@@ -776,6 +776,17 @@ textarea:focus {
     border-color: rgba(255, 255, 255, 0.25);
 }
 
+.selection-btn.remove-action-btn {
+    color: var(--error-400);
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
+.selection-btn.remove-action-btn:hover {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--error-400);
+    border-color: rgba(239, 68, 68, 0.5);
+}
+
 /* Tips Card */
 .tips-card {
     background: rgba(255, 255, 255, 0.03);

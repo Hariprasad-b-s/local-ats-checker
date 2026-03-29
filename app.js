@@ -7,6 +7,8 @@
 let currentMissingKeywords = [];
 // Store selected keywords
 let selectedKeywords = new Set();
+// Store current analysis results
+let currentAnalysisResults = null;
 
 /**
  * Update the selected count and button visibility
@@ -65,6 +67,44 @@ function clearAllSelections() {
     });
     selectedKeywords.clear();
     updateSelectionUI();
+}
+
+/**
+ * Remove selected keywords from comparison and recalculate score
+ */
+function removeSelectedKeywords() {
+    if (selectedKeywords.size === 0 || !currentAnalysisResults) return;
+
+    currentAnalysisResults.missingKeywords = currentAnalysisResults.missingKeywords.filter(k => !selectedKeywords.has(k));
+    currentAnalysisResults.totalJobKeywords -= selectedKeywords.size;
+
+    currentAnalysisResults.score = currentAnalysisResults.totalJobKeywords > 0 
+        ? Math.round((currentAnalysisResults.matchedKeywords.length / currentAnalysisResults.totalJobKeywords) * 100) 
+        : 0;
+
+    currentMissingKeywords = currentAnalysisResults.missingKeywords;
+
+    const missingKeywordsContainer = document.getElementById('missingKeywords');
+    const keywordTags = missingKeywordsContainer.querySelectorAll('.keyword-tag.missing');
+    keywordTags.forEach(tag => {
+        if (selectedKeywords.has(tag.textContent)) {
+            tag.remove();
+        }
+    });
+
+    selectedKeywords.clear();
+    updateSelectionUI();
+
+    animateScore(currentAnalysisResults.score);
+
+    const message = getScoreMessage(currentAnalysisResults.score);
+    const scoreMessage = document.getElementById('scoreMessage');
+    scoreMessage.textContent = message.text;
+    scoreMessage.className = `score-message ${message.class}`;
+
+    if (currentAnalysisResults.missingKeywords.length === 0) {
+        missingKeywordsContainer.innerHTML = '<span style="color: var(--gray-400);">No missing keywords left! Great job!</span>';
+    }
 }
 
 /**
@@ -515,8 +555,9 @@ function displayResults(results) {
     scoreMessage.textContent = message.text;
     scoreMessage.className = `score-message ${message.class}`;
 
-    // Store missing keywords globally for copy functionality
+    // Store missing keywords and analysis results globally
     currentMissingKeywords = results.missingKeywords;
+    currentAnalysisResults = results;
 
     // Clear previous selections
     selectedKeywords.clear();
@@ -859,6 +900,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // Clear selection button
     const clearSelectionBtn = document.getElementById('clearSelectionBtn');
     clearSelectionBtn.addEventListener('click', clearAllSelections);
+
+    // Remove selected button
+    const removeSelectedBtn = document.getElementById('removeSelectedBtn');
+    if (removeSelectedBtn) {
+        removeSelectedBtn.addEventListener('click', removeSelectedKeywords);
+    }
 
     // Setup file upload
     setupFileUpload();
