@@ -1,3 +1,6 @@
+import { GEMINI_API_KEY } from './config.js';
+import { GoogleGenerativeAI } from 'https://esm.run/@google/generative-ai';
+
 /**
  * ATS Resume Matcher - JavaScript Application
  * Analyzes job descriptions and resumes for ATS compatibility
@@ -481,9 +484,9 @@ function generateTips(missingKeywords, score) {
 /**
  * Animate score display
  */
-function animateScore(targetScore) {
-    const scoreValue = document.getElementById('scoreValue');
-    const scoreCircle = document.getElementById('scoreCircle');
+function animateScore(targetScore, valueElementId = 'scoreValue', circleElementId = 'scoreCircle') {
+    const scoreValue = document.getElementById(valueElementId);
+    const scoreCircle = document.getElementById(circleElementId);
 
     // Calculate the stroke offset for the progress ring
     const circumference = 2 * Math.PI * 45; // radius is 45
@@ -530,30 +533,12 @@ function animateScore(targetScore) {
 }
 
 /**
- * Display results
+ * Display results (keywords and tips)
  */
 function displayResults(results) {
-    const resultsSection = document.getElementById('results');
-    const scoreMessage = document.getElementById('scoreMessage');
     const missingKeywordsContainer = document.getElementById('missingKeywords');
     const matchedKeywordsContainer = document.getElementById('matchedKeywords');
     const tipsList = document.getElementById('tipsList');
-
-    // Show results section
-    resultsSection.classList.remove('hidden');
-
-    // Scroll to results
-    setTimeout(() => {
-        resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 100);
-
-    // Animate score
-    animateScore(results.score);
-
-    // Set score message
-    const message = getScoreMessage(results.score);
-    scoreMessage.textContent = message.text;
-    scoreMessage.className = `score-message ${message.class}`;
 
     // Store missing keywords and analysis results globally
     currentMissingKeywords = results.missingKeywords;
@@ -604,6 +589,72 @@ function displayResults(results) {
 }
 
 /**
+ * Generate AI Review using Gemini
+ */
+async function generateAIReview(jobDescription, resume) {
+    const aiReviewCard = document.getElementById('aiReviewCard');
+    const aiReviewContent = document.getElementById('aiReviewContent');
+    const aiLoader = document.getElementById('aiLoader');
+
+    // Show AI card and loading state
+    aiReviewCard.classList.remove('hidden');
+    aiReviewContent.innerHTML = '<p style="color: var(--gray-400); text-align: center;">Gemini is rewriting your resume against the job description...</p>';
+    aiLoader.classList.remove('hidden');
+
+    try {
+        if (!GEMINI_API_KEY || GEMINI_API_KEY === 'YOUR_GEMINI_API_KEY_HERE') {
+            throw new Error('API Key missing. Please add your key to config.js.');
+        }
+
+        const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+        // Using pro model or flash for text generation
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+        const prompt = `Act as a senior recruitment consultant and ATS optimization specialist with 15+ years of experience in Technology. Analyze the job description below:
+${jobDescription}
+
+Now, look at my current resume:
+${resume}
+
+Please rewrite my resume to be modern, results-driven, and ATS-friendly. For my work experience:
+Use the T-Q-R approach (Tasks, Quantification, Results).
+Start each bullet with a strong action verb.
+Include 3-5 bullets per role, emphasizing metrics (numbers, currency, percentages).
+Ensure it passes ATS filters by naturally integrating keywords from the job description.
+Do not output anything except the updated resume text format in markdown.`;
+
+        const result = await model.generateContent(prompt);
+        const responseText = result.response.text();
+
+        // render using marked.js
+        if (typeof marked !== 'undefined') {
+            aiReviewContent.innerHTML = marked.parse(responseText);
+        } else {
+            // fallback if marked fails to load
+            aiReviewContent.innerHTML = `<pre style="white-space: pre-wrap; font-family: inherit;">${responseText}</pre>`;
+        }
+
+        // Analyze the rewritten resume to show the New Score
+        const optimizedResults = analyzeMatch(jobDescription, responseText);
+        animateScore(optimizedResults.score, 'scoreValueAfter', 'scoreCircleAfter');
+        
+        const messageAfter = getScoreMessage(optimizedResults.score);
+        const scoreMessageAfter = document.getElementById('scoreMessageAfter');
+        scoreMessageAfter.textContent = messageAfter.text;
+        scoreMessageAfter.className = `score-message ${messageAfter.class}`;
+
+        // Also update keywords list to reflect the new improved resume
+        displayResults(optimizedResults, true);
+
+    } catch (error) {
+        console.error('Gemini API Error:', error);
+        aiReviewContent.innerHTML = `<div style="padding: 1rem; border: 1px solid var(--error-400); border-radius: 8px; color: var(--error-400);"><strong>AI Analysis Failed:</strong> ${error.message}</div>`;
+    } finally {
+        aiLoader.classList.add('hidden');
+    }
+}
+
+/**
  * Main analysis handler
  */
 function handleAnalyze() {
@@ -619,7 +670,7 @@ function handleAnalyze() {
     }
 
     if (!resume) {
-        alert('Please paste your resume content.');
+        alert('Please select or paste your resume content.');
         document.getElementById('resume').focus();
         return;
     }
@@ -627,16 +678,34 @@ function handleAnalyze() {
     // Show loading state
     analyzeBtn.classList.add('loading');
     analyzeBtn.disabled = true;
+    
+    // Reset secondary score display while loading
+    document.getElementById('scoreValueAfter').textContent = '0';
+    document.getElementById('scoreMessageAfter').textContent = 'Generating...';
+    document.getElementById('scoreMessageAfter').className = 'score-message';
 
-    // Simulate processing time for better UX
+    // Call Gemini asynchronously to rewrite the resume and calculate new score
+    generateAIReview(jobDescription, resume);
+
+    // Instantly calculate the original ATS score for baseline
     setTimeout(() => {
         const results = analyzeMatch(jobDescription, resume);
-        displayResults(results);
+        
+        const resultsSection = document.getElementById('results');
+        resultsSection.classList.remove('hidden');
+        resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-        // Remove loading state
+        animateScore(results.score, 'scoreValue', 'scoreCircle');
+        
+        const message = getScoreMessage(results.score);
+        const scoreMessage = document.getElementById('scoreMessage');
+        scoreMessage.textContent = message.text;
+        scoreMessage.className = `score-message ${message.class}`;
+
+        // Remove loading state on button (AI card still has its loader running)
         analyzeBtn.classList.remove('loading');
         analyzeBtn.disabled = false;
-    }, 800);
+    }, 100);
 }
 
 // Store uploaded file content
@@ -884,6 +953,26 @@ function setupFileUpload() {
 document.addEventListener('DOMContentLoaded', () => {
     const analyzeBtn = document.getElementById('analyzeBtn');
     analyzeBtn.addEventListener('click', handleAnalyze);
+
+    // Resume selection
+    const resumeSelect = document.getElementById('resumeSelect');
+    if (resumeSelect) {
+        resumeSelect.addEventListener('change', async (e) => {
+            const filePath = e.target.value;
+            if (!filePath) {
+                document.getElementById('resume').value = '';
+                return;
+            }
+            try {
+                const response = await fetch(filePath);
+                const text = await response.text();
+                document.getElementById('resume').value = text;
+            } catch (err) {
+                console.error("Failed to fetch resume template", err);
+                alert("Could not load the resume template.");
+            }
+        });
+    }
 
     // Copy missing keywords button
     const copyMissingBtn = document.getElementById('copyMissingBtn');

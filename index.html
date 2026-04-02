@@ -14,6 +14,8 @@
     <link rel="stylesheet" href="styles.css">
     <!-- PDF.js library for PDF text extraction -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <!-- Marked.js library for Markdown parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 
 <body>
@@ -78,6 +80,16 @@
                         <h2>Your Resume</h2>
                     </div>
 
+                    <div class="input-group" style="margin-bottom: 1rem;">
+                        <label for="resumeSelect" style="display: block; margin-bottom: 0.5rem; color: var(--gray-300); font-weight: 500;">Select Base Resume</label>
+                        <select id="resumeSelect" class="text-input select-input">
+                            <option value="">-- Or use file upload / paste below --</option>
+                            <option value="resumes/internship.txt">Internship Resume</option>
+                            <option value="resumes/full_1_page.txt">Full 1 Page Resume</option>
+                            <option value="resumes/2_years_experience.txt">2 Years Experience Resume</option>
+                        </select>
+                    </div>
+
                     <!-- File Upload Zone -->
                     <div id="uploadZone" class="upload-zone">
                         <input type="file" id="resumeFile" accept=".txt,.pdf,.docx" hidden>
@@ -135,23 +147,45 @@
             </button>
 
             <div id="results" class="results-section hidden">
-                <div class="score-card">
-                    <div class="score-header">
-                        <h3>ATS Match Score</h3>
-                        <p class="score-subtitle">How well your resume matches the job</p>
-                    </div>
-                    <div class="score-display">
-                        <div class="score-ring">
-                            <svg viewBox="0 0 100 100">
-                                <circle class="score-ring-bg" cx="50" cy="50" r="45" />
-                                <circle id="scoreCircle" class="score-ring-progress" cx="50" cy="50" r="45" />
-                            </svg>
-                            <div class="score-value">
-                                <span id="scoreValue">0</span>
-                                <span class="score-percent">%</span>
-                            </div>
+                <div class="score-cards-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+                    <div class="score-card" style="margin-bottom: 0;">
+                        <div class="score-header">
+                            <h3>Original Score</h3>
+                            <p class="score-subtitle">Before AI Optimization</p>
                         </div>
-                        <div id="scoreMessage" class="score-message"></div>
+                        <div class="score-display">
+                            <div class="score-ring">
+                                <svg viewBox="0 0 100 100">
+                                    <circle class="score-ring-bg" cx="50" cy="50" r="45" />
+                                    <circle id="scoreCircle" class="score-ring-progress" cx="50" cy="50" r="45" />
+                                </svg>
+                                <div class="score-value">
+                                    <span id="scoreValue">0</span>
+                                    <span class="score-percent">%</span>
+                                </div>
+                            </div>
+                            <div id="scoreMessage" class="score-message"></div>
+                        </div>
+                    </div>
+
+                    <div class="score-card" style="margin-bottom: 0;">
+                        <div class="score-header">
+                            <h3>Optimized Score</h3>
+                            <p class="score-subtitle">After AI Rewrite</p>
+                        </div>
+                        <div class="score-display">
+                            <div class="score-ring">
+                                <svg viewBox="0 0 100 100">
+                                    <circle class="score-ring-bg" cx="50" cy="50" r="45" />
+                                    <circle id="scoreCircleAfter" class="score-ring-progress" cx="50" cy="50" r="45" />
+                                </svg>
+                                <div class="score-value">
+                                    <span id="scoreValueAfter">0</span>
+                                    <span class="score-percent">%</span>
+                                </div>
+                            </div>
+                            <div id="scoreMessageAfter" class="score-message"></div>
+                        </div>
                     </div>
                 </div>
 
@@ -244,6 +278,17 @@
                     </div>
                     <ul id="tipsList" class="tips-list"></ul>
                 </div>
+
+                <div class="ai-review-card hidden" id="aiReviewCard">
+                    <div class="ai-review-header">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 2L15 8L21 11L15 14L12 20L9 14L3 11L9 8L12 2Z" fill="currentColor"/>
+                        </svg>
+                        <h4>Gemini AI Review</h4>
+                        <div class="ai-loader hidden" id="aiLoader"></div>
+                    </div>
+                    <div id="aiReviewContent" class="ai-review-content markdown-body"></div>
+                </div>
             </div>
         </main>
 
@@ -252,7 +297,7 @@
         </footer>
     </div>
 
-    <script src="app.js"></script>
+    <script type="module" src="app.js"></script>
 </body>
 
 </html>
