@@ -81,8 +81,8 @@ function removeSelectedKeywords() {
     currentAnalysisResults.missingKeywords = currentAnalysisResults.missingKeywords.filter(k => !selectedKeywords.has(k));
     currentAnalysisResults.totalJobKeywords -= selectedKeywords.size;
 
-    currentAnalysisResults.score = currentAnalysisResults.totalJobKeywords > 0 
-        ? Math.round((currentAnalysisResults.matchedKeywords.length / currentAnalysisResults.totalJobKeywords) * 100) 
+    currentAnalysisResults.score = currentAnalysisResults.totalJobKeywords > 0
+        ? Math.round((currentAnalysisResults.matchedKeywords.length / currentAnalysisResults.totalJobKeywords) * 100)
         : 0;
 
     currentMissingKeywords = currentAnalysisResults.missingKeywords;
@@ -607,8 +607,8 @@ async function generateAIReview(jobDescription, resume) {
         }
 
         const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-        // Using pro model or flash for text generation
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        // Using flash model for speed and generous free tier quotas
+        const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
 
         const prompt = `Act as a senior recruitment consultant and ATS optimization specialist with 15+ years of experience in Technology. Analyze the job description below:
 ${jobDescription}
@@ -637,7 +637,7 @@ Do not output anything except the updated resume text format in markdown.`;
         // Analyze the rewritten resume to show the New Score
         const optimizedResults = analyzeMatch(jobDescription, responseText);
         animateScore(optimizedResults.score, 'scoreValueAfter', 'scoreCircleAfter');
-        
+
         const messageAfter = getScoreMessage(optimizedResults.score);
         const scoreMessageAfter = document.getElementById('scoreMessageAfter');
         scoreMessageAfter.textContent = messageAfter.text;
@@ -651,6 +651,11 @@ Do not output anything except the updated resume text format in markdown.`;
         aiReviewContent.innerHTML = `<div style="padding: 1rem; border: 1px solid var(--error-400); border-radius: 8px; color: var(--error-400);"><strong>AI Analysis Failed:</strong> ${error.message}</div>`;
     } finally {
         aiLoader.classList.add('hidden');
+        const aiRewriteBtn = document.getElementById('aiRewriteBtn');
+        if (aiRewriteBtn) {
+            aiRewriteBtn.classList.remove('loading');
+            aiRewriteBtn.disabled = false;
+        }
     }
 }
 
@@ -678,34 +683,78 @@ function handleAnalyze() {
     // Show loading state
     analyzeBtn.classList.add('loading');
     analyzeBtn.disabled = true;
-    
-    // Reset secondary score display while loading
-    document.getElementById('scoreValueAfter').textContent = '0';
-    document.getElementById('scoreMessageAfter').textContent = 'Generating...';
-    document.getElementById('scoreMessageAfter').className = 'score-message';
 
-    // Call Gemini asynchronously to rewrite the resume and calculate new score
-    generateAIReview(jobDescription, resume);
+    // Reset secondary score display just in case
+    document.getElementById('scoreValueAfter').textContent = '0';
+    document.getElementById('scoreMessageAfter').textContent = 'Pending AI...';
+    document.getElementById('scoreMessageAfter').className = 'score-message';
 
     // Instantly calculate the original ATS score for baseline
     setTimeout(() => {
         const results = analyzeMatch(jobDescription, resume);
-        
+
         const resultsSection = document.getElementById('results');
         resultsSection.classList.remove('hidden');
         resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
         animateScore(results.score, 'scoreValue', 'scoreCircle');
-        
+
         const message = getScoreMessage(results.score);
         const scoreMessage = document.getElementById('scoreMessage');
         scoreMessage.textContent = message.text;
         scoreMessage.className = `score-message ${message.class}`;
 
-        // Remove loading state on button (AI card still has its loader running)
+        displayResults(results, false);
+
         analyzeBtn.classList.remove('loading');
         analyzeBtn.disabled = false;
     }, 100);
+}
+
+/**
+ * AI Rewrite handler
+ */
+function handleAIRewrite() {
+    const jobDescription = document.getElementById('jobDescription').value.trim();
+    const resume = document.getElementById('resume').value.trim();
+    const aiRewriteBtn = document.getElementById('aiRewriteBtn');
+
+    // Validation
+    if (!jobDescription) {
+        alert('Please paste the job description.');
+        document.getElementById('jobDescription').focus();
+        return;
+    }
+
+    if (!resume) {
+        alert('Please select or paste your resume content.');
+        document.getElementById('resume').focus();
+        return;
+    }
+
+    // Show loading state
+    aiRewriteBtn.classList.add('loading');
+    aiRewriteBtn.disabled = true;
+
+    // Reset secondary score display while loading
+    document.getElementById('scoreValueAfter').textContent = '0';
+    document.getElementById('scoreMessageAfter').textContent = 'Generating...';
+    document.getElementById('scoreMessageAfter').className = 'score-message';
+
+    // Calculate baseline score first if not already visible
+    const results = analyzeMatch(jobDescription, resume);
+    const resultsSection = document.getElementById('results');
+    resultsSection.classList.remove('hidden');
+    resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    animateScore(results.score, 'scoreValue', 'scoreCircle');
+    const message = getScoreMessage(results.score);
+    const scoreMessage = document.getElementById('scoreMessage');
+    scoreMessage.textContent = message.text;
+    scoreMessage.className = `score-message ${message.class}`;
+
+    // Call Gemini asynchronously to rewrite the resume and calculate new score
+    generateAIReview(jobDescription, resume);
 }
 
 // Store uploaded file content
@@ -953,6 +1002,11 @@ function setupFileUpload() {
 document.addEventListener('DOMContentLoaded', () => {
     const analyzeBtn = document.getElementById('analyzeBtn');
     analyzeBtn.addEventListener('click', handleAnalyze);
+
+    const aiRewriteBtn = document.getElementById('aiRewriteBtn');
+    if (aiRewriteBtn) {
+        aiRewriteBtn.addEventListener('click', handleAIRewrite);
+    }
 
     // Resume selection
     const resumeSelect = document.getElementById('resumeSelect');

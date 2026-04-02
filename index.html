@@ -135,16 +135,27 @@
                 </div>
             </div>
 
-            <button id="analyzeBtn" class="analyze-btn">
-                <span class="btn-text">Analyze Match</span>
-                <span class="btn-icon">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" stroke-width="2"
-                            stroke-linecap="round" stroke-linejoin="round" />
-                    </svg>
-                </span>
-                <div class="btn-loader"></div>
-            </button>
+            <div style="display: flex; gap: 1rem; width: 100%; max-width: 600px; justify-content: center; margin: 0 auto 2rem auto;">
+                <button id="analyzeBtn" class="analyze-btn" style="margin: 0; flex: 1;">
+                    <span class="btn-text">Analyze Match</span>
+                    <span class="btn-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                    </span>
+                    <div class="btn-loader"></div>
+                </button>
+                <button id="aiRewriteBtn" class="analyze-btn" style="margin: 0; flex: 1; background: linear-gradient(135deg, var(--purple-500) 0%, #3b82f6 100%);">
+                    <span class="btn-text">AI Rewrite</span>
+                    <span class="btn-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 2L15 9L22 12L15 15L12 22L9 15L2 12L9 9L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </span>
+                    <div class="btn-loader"></div>
+                </button>
+            </div>
 
             <div id="results" class="results-section hidden">
                 <div class="score-cards-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
