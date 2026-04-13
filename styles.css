@@ -332,6 +332,35 @@ textarea:focus {
     background: rgba(0, 0, 0, 0.3);
 }
 
+.action-buttons {
+    display: flex;
+    gap: 1rem;
+    width: 100%;
+    max-width: 980px;
+    justify-content: center;
+    align-items: stretch;
+    margin: 0 auto 2rem auto;
+}
+
+.action-buttons .analyze-btn {
+    margin: 0;
+    max-width: none;
+    min-height: 56px;
+    flex: 1 1 0;
+}
+
+@media (max-width: 900px) {
+    .action-buttons {
+        flex-direction: column;
+        max-width: 420px;
+    }
+
+    .action-buttons .analyze-btn {
+        max-width: none;
+        width: 100%;
+    }
+}
+
 /* Analyze Button */
 .analyze-btn {
     display: flex;
@@ -1094,6 +1123,17 @@ textarea:focus {
     color: var(--gray-200);
     font-size: 1rem;
     line-height: 1.6;
+}
+
+.generated-text {
+    margin: 0;
+    white-space: pre-wrap;
+    font-family: var(--font-family);
+    color: var(--gray-100);
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--border-radius-md);
+    padding: 1rem;
 }
 
 /* Markdown styling in AI Review */

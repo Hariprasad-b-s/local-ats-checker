@@ -1,5 +1,4 @@
-import { GEMINI_API_KEY } from './config.js';
-import { GoogleGenerativeAI } from 'https://esm.run/@google/generative-ai';
+import { OLLAMA_BASE_URL, OLLAMA_MODEL } from './config.js';
 
 /**
  * ATS Resume Matcher - JavaScript Application
@@ -12,6 +11,8 @@ let currentMissingKeywords = [];
 let selectedKeywords = new Set();
 // Store current analysis results
 let currentAnalysisResults = null;
+// Store AI-generated resume for downstream cover letter generation
+let aiGeneratedResumeContent = '';
 
 /**
  * Update the selected count and button visibility
@@ -197,6 +198,38 @@ async function copyMissingKeywords() {
             copyText.textContent = 'Copy All';
         }, 2000);
     }
+}
+
+/**
+ * Generate text using a local Ollama model
+ */
+async function generateWithOllama(prompt) {
+    const response = await fetch(`${OLLAMA_BASE_URL}/api/generate`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            model: OLLAMA_MODEL,
+            prompt,
+            stream: false,
+            options: {
+                temperature: 0.3
+            }
+        })
+    });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Ollama request failed (${response.status}): ${errorText}`);
+    }
+
+    const data = await response.json();
+    if (!data.response) {
+        throw new Error('Ollama returned an empty response.');
+    }
+
+    return data.response.trim();
 }
 
 
@@ -589,7 +622,7 @@ function displayResults(results) {
 }
 
 /**
- * Generate AI Review using Gemini
+ * Generate AI Review using Ollama
  */
 async function generateAIReview(jobDescription, resume) {
     const aiReviewCard = document.getElementById('aiReviewCard');
@@ -598,19 +631,11 @@ async function generateAIReview(jobDescription, resume) {
 
     // Show AI card and loading state
     aiReviewCard.classList.remove('hidden');
-    aiReviewContent.innerHTML = '<p style="color: var(--gray-400); text-align: center;">Gemini is rewriting your resume against the job description...</p>';
+    aiReviewContent.innerHTML = '<p style="color: var(--gray-400); text-align: center;">Ollama is rewriting your resume against the job description (Pass 1/2)...</p>';
     aiLoader.classList.remove('hidden');
 
     try {
-        if (!GEMINI_API_KEY || GEMINI_API_KEY === 'YOUR_GEMINI_API_KEY_HERE') {
-            throw new Error('API Key missing. Please add your key to config.js.');
-        }
-
-        const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-        // Using flash model for speed and generous free tier quotas
-        const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
-
-        const prompt = `Act as a senior recruitment consultant and ATS optimization specialist with 15+ years of experience in Technology. Analyze the job description below:
+        const firstPassPrompt = `Act as a senior recruitment consultant and ATS optimization specialist with 15+ years of experience in Technology. Analyze the job description below:
 ${jobDescription}
 
 Now, look at my current resume:
@@ -623,8 +648,45 @@ Include 3-5 bullets per role, emphasizing metrics (numbers, currency, percentage
 Ensure it passes ATS filters by naturally integrating keywords from the job description.
 Do not output anything except the updated resume text format in markdown.`;
 
-        const result = await model.generateContent(prompt);
-        const responseText = result.response.text();
+        const firstPassResume = await generateWithOllama(firstPassPrompt);
+        const firstPassResults = analyzeMatch(jobDescription, firstPassResume);
+
+        aiReviewContent.innerHTML = '<p style="color: var(--gray-400); text-align: center;">Applying targeted keyword optimization (Pass 2/2)...</p>';
+
+        const missingKeywordsForSecondPass = firstPassResults.missingKeywords.slice(0, 20);
+        const missingKeywordsList = missingKeywordsForSecondPass.length > 0
+            ? missingKeywordsForSecondPass.join(', ')
+            : 'No major missing keywords detected';
+
+        const secondPassPrompt = `You are an ATS optimization specialist.
+Revise the resume below to improve ATS match for the provided job description.
+Keep the resume truthful, concise, and professional.
+Do not fabricate experience.
+Naturally include relevant missing keywords when they accurately fit existing experience.
+
+Job Description:
+${jobDescription}
+
+Current Resume Draft:
+${firstPassResume}
+
+Priority Missing Keywords:
+${missingKeywordsList}
+
+Rules:
+- Preserve clear markdown resume formatting.
+- Keep strong action verbs and quantifiable achievements.
+- Avoid keyword stuffing.
+- Return only the final revised resume in markdown.`;
+
+        const secondPassResume = await generateWithOllama(secondPassPrompt);
+        const secondPassResults = analyzeMatch(jobDescription, secondPassResume);
+
+        const useSecondPass = secondPassResults.score >= firstPassResults.score;
+        const responseText = useSecondPass ? secondPassResume : firstPassResume;
+        const optimizedResults = useSecondPass ? secondPassResults : firstPassResults;
+
+        aiGeneratedResumeContent = responseText;
 
         // render using marked.js
         if (typeof marked !== 'undefined') {
@@ -634,8 +696,16 @@ Do not output anything except the updated resume text format in markdown.`;
             aiReviewContent.innerHTML = `<pre style="white-space: pre-wrap; font-family: inherit;">${responseText}</pre>`;
         }
 
-        // Analyze the rewritten resume to show the New Score
-        const optimizedResults = analyzeMatch(jobDescription, responseText);
+        const optimizationNote = document.createElement('p');
+        optimizationNote.style.color = 'var(--gray-400)';
+        optimizationNote.style.fontSize = '0.9rem';
+        optimizationNote.style.marginTop = '1rem';
+        optimizationNote.textContent = useSecondPass
+            ? `Optimization complete: Pass 2 improved ATS score from ${firstPassResults.score}% to ${secondPassResults.score}%.`
+            : `Optimization complete: Pass 2 scored ${secondPassResults.score}% (Pass 1 kept at ${firstPassResults.score}%).`;
+        aiReviewContent.appendChild(optimizationNote);
+
+        // Analyze the optimized resume to show the New Score
         animateScore(optimizedResults.score, 'scoreValueAfter', 'scoreCircleAfter');
 
         const messageAfter = getScoreMessage(optimizedResults.score);
@@ -647,7 +717,8 @@ Do not output anything except the updated resume text format in markdown.`;
         displayResults(optimizedResults, true);
 
     } catch (error) {
-        console.error('Gemini API Error:', error);
+        console.error('Ollama API Error:', error);
+        aiGeneratedResumeContent = '';
         aiReviewContent.innerHTML = `<div style="padding: 1rem; border: 1px solid var(--error-400); border-radius: 8px; color: var(--error-400);"><strong>AI Analysis Failed:</strong> ${error.message}</div>`;
     } finally {
         aiLoader.classList.add('hidden');
@@ -753,8 +824,75 @@ function handleAIRewrite() {
     scoreMessage.textContent = message.text;
     scoreMessage.className = `score-message ${message.class}`;
 
-    // Call Gemini asynchronously to rewrite the resume and calculate new score
+    // Rewrite resume and calculate updated score
     generateAIReview(jobDescription, resume);
+}
+
+/**
+ * Generate cover letter using Ollama
+ */
+async function generateCoverLetter(jobDescription, resumeSource) {
+    const coverLetterCard = document.getElementById('coverLetterCard');
+    const coverLetterContent = document.getElementById('coverLetterContent');
+    const coverLetterLoader = document.getElementById('coverLetterLoader');
+
+    coverLetterCard.classList.remove('hidden');
+    coverLetterContent.innerHTML = '<p style="color: var(--gray-400); text-align: center;">Generating your tailored cover letter...</p>';
+    coverLetterLoader.classList.remove('hidden');
+
+    try {
+        const prompt = `You are an expert career writer.
+Objective: Draft a professional and compelling cover letter for the specified job description.
+Use the key details and achievements from the resume to tailor the content and present the candidate as a strong fit for the position.
+Output format: Generate the cover letter as plain text only.
+
+Job Description:
+${jobDescription}
+
+Resume:
+${resumeSource}`;
+
+        const coverLetterText = await generateWithOllama(prompt);
+        coverLetterContent.innerHTML = `<pre class="generated-text">${coverLetterText}</pre>`;
+    } catch (error) {
+        console.error('Cover letter generation error:', error);
+        coverLetterContent.innerHTML = `<div style="padding: 1rem; border: 1px solid var(--error-400); border-radius: 8px; color: var(--error-400);"><strong>Cover Letter Generation Failed:</strong> ${error.message}</div>`;
+    } finally {
+        coverLetterLoader.classList.add('hidden');
+        const coverLetterBtn = document.getElementById('coverLetterBtn');
+        if (coverLetterBtn) {
+            coverLetterBtn.classList.remove('loading');
+            coverLetterBtn.disabled = false;
+        }
+    }
+}
+
+/**
+ * Cover letter generation handler
+ */
+function handleCoverLetterGeneration() {
+    const jobDescription = document.getElementById('jobDescription').value.trim();
+    const manualOrTemplateResume = document.getElementById('resume').value.trim();
+    const coverLetterBtn = document.getElementById('coverLetterBtn');
+
+    if (!jobDescription) {
+        alert('Please paste the job description.');
+        document.getElementById('jobDescription').focus();
+        return;
+    }
+
+    const preferredResumeSource = aiGeneratedResumeContent.trim() || manualOrTemplateResume;
+
+    if (!preferredResumeSource) {
+        alert('Please select or paste your resume content.');
+        document.getElementById('resume').focus();
+        return;
+    }
+
+    coverLetterBtn.classList.add('loading');
+    coverLetterBtn.disabled = true;
+
+    generateCoverLetter(jobDescription, preferredResumeSource);
 }
 
 // Store uploaded file content
@@ -912,12 +1050,27 @@ async function handleFileSelect(file) {
 
         // Also populate the textarea with extracted content
         resumeTextarea.value = uploadedResumeContent;
+        aiGeneratedResumeContent = '';
 
     } catch (error) {
         console.error('Error reading file:', error);
         alert('Error reading file. Please try again or paste your resume manually.');
         resetUploadZone();
     }
+}
+
+/**
+ * Load a resume template from the resumes directory
+ */
+async function loadResumeTemplate(filePath) {
+    const resolvedUrl = new URL(filePath, window.location.href);
+    const response = await fetch(resolvedUrl.href, { cache: 'no-store' });
+
+    if (!response.ok) {
+        throw new Error(`Template request failed (${response.status})`);
+    }
+
+    return response.text();
 }
 
 /**
@@ -947,6 +1100,7 @@ function resetUploadZone() {
     uploadZone.classList.remove('has-file');
     resumeFileInput.value = '';
     uploadedResumeContent = '';
+    aiGeneratedResumeContent = '';
 }
 
 /**
@@ -1008,6 +1162,11 @@ document.addEventListener('DOMContentLoaded', () => {
         aiRewriteBtn.addEventListener('click', handleAIRewrite);
     }
 
+    const coverLetterBtn = document.getElementById('coverLetterBtn');
+    if (coverLetterBtn) {
+        coverLetterBtn.addEventListener('click', handleCoverLetterGeneration);
+    }
+
     // Resume selection
     const resumeSelect = document.getElementById('resumeSelect');
     if (resumeSelect) {
@@ -1015,16 +1174,34 @@ document.addEventListener('DOMContentLoaded', () => {
             const filePath = e.target.value;
             if (!filePath) {
                 document.getElementById('resume').value = '';
+                aiGeneratedResumeContent = '';
                 return;
             }
+
+            const resumeTextarea = document.getElementById('resume');
+            resumeTextarea.value = 'Loading selected resume template...';
+
             try {
-                const response = await fetch(filePath);
-                const text = await response.text();
-                document.getElementById('resume').value = text;
+                const text = await loadResumeTemplate(filePath);
+                resumeTextarea.value = text;
+                aiGeneratedResumeContent = '';
             } catch (err) {
-                console.error("Failed to fetch resume template", err);
-                alert("Could not load the resume template.");
+                console.error('Failed to load resume template', err);
+                resumeTextarea.value = '';
+
+                if (window.location.protocol === 'file:') {
+                    alert('Template loading is blocked in file:// mode by browser security. Start a local server (for example: python3 -m http.server) and open the app via http://localhost.');
+                } else {
+                    alert('Could not load the selected resume template. Please ensure the resumes folder is available and the app is served from a local server.');
+                }
             }
+        });
+    }
+
+    const resumeTextarea = document.getElementById('resume');
+    if (resumeTextarea) {
+        resumeTextarea.addEventListener('input', () => {
+            aiGeneratedResumeContent = '';
         });
     }
 

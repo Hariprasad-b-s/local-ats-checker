@@ -135,7 +135,7 @@
                 </div>
             </div>
 
-            <div style="display: flex; gap: 1rem; width: 100%; max-width: 600px; justify-content: center; margin: 0 auto 2rem auto;">
+            <div class="action-buttons">
                 <button id="analyzeBtn" class="analyze-btn" style="margin: 0; flex: 1;">
                     <span class="btn-text">Analyze Match</span>
                     <span class="btn-icon">
@@ -151,6 +151,15 @@
                     <span class="btn-icon">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M12 2L15 9L22 12L15 15L12 22L9 15L2 12L9 9L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </span>
+                    <div class="btn-loader"></div>
+                </button>
+                <button id="coverLetterBtn" class="analyze-btn" style="margin: 0; flex: 1; background: linear-gradient(135deg, #0ea5e9 0%, #22c55e 100%);">
+                    <span class="btn-text">Generate Cover Letter</span>
+                    <span class="btn-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M4 6H20M4 12H20M4 18H14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                         </svg>
                     </span>
                     <div class="btn-loader"></div>
@@ -295,10 +304,21 @@
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M12 2L15 8L21 11L15 14L12 20L9 14L3 11L9 8L12 2Z" fill="currentColor"/>
                         </svg>
-                        <h4>Gemini AI Review</h4>
+                        <h4>Ollama AI Review</h4>
                         <div class="ai-loader hidden" id="aiLoader"></div>
                     </div>
                     <div id="aiReviewContent" class="ai-review-content markdown-body"></div>
+                </div>
+
+                <div class="ai-review-card hidden" id="coverLetterCard">
+                    <div class="ai-review-header">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M4 6H20M4 12H20M4 18H14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                        <h4>AI Cover Letter</h4>
+                        <div class="ai-loader hidden" id="coverLetterLoader"></div>
+                    </div>
+                    <div id="coverLetterContent" class="ai-review-content"></div>
                 </div>
             </div>
         </main>
